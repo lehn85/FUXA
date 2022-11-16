@@ -487,7 +487,7 @@ function MODBUSclient(_data, _logger, _events) {
                     let value = items[itemidx].value;
                     let tags = items[itemidx].Tags;
                     tags.forEach(tag => {
-                        tempTags[tag.id] = { id: tag.id, value: convertValue(value, tag.divisor), type: type, daq: tag.daq, changed: changed };
+                        tempTags[tag.id] = { id: tag.id, name: tag.name, value: convertValue(value, tag.divisor), type: type, daq: tag.daq, changed: changed };
                         someval = true;
                     });
                 } else {
