@@ -182,7 +182,13 @@ function getStepDate(ts, type, toadd) {
     let dt = new Date(ts);
     if (type === ReportIntervalType.day) {
         dt = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + toadd, 0, 0, 0);
-    } else { //if (type === ReportIntervalType.hour) {
+    } else if (type === ReportIntervalType.minute){
+        dt = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), dt.getHours(), dt.getMinutes() + toadd, 0);
+    } else if (type === ReportIntervalType.ten_minute){
+        dt = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), dt.getHours(), (Math.floor(dt.getMinutes() / 10) + toadd) * 10, 0);
+    } else if (type === ReportIntervalType.half_hour){
+        dt = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), dt.getHours(), (Math.floor(dt.getMinutes() / 30) + toadd) * 30, 0);
+    }  else { //if (type === ReportIntervalType.hour) {
         dt = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), dt.getHours() + toadd, 0, 0);
     }
     return dt;
@@ -197,6 +203,9 @@ module.exports = {
 };
 
 const ReportIntervalType = {
+    minute: 'minute',    
+    ten_minute: 'ten_minute',
+    half_hour: 'half_hour',
     hour: 'hour',
     day: 'day',
 }
