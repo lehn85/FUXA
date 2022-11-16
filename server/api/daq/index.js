@@ -75,6 +75,53 @@ module.exports = {
                 runtime.logger.error("api get daq: " + err.message);
             }
         });
+
+/**
+         * GET daq data
+         * Take from daq storage data, aggregate and reply 
+         */
+        daqApp.get("/api/daq_agg", secureFnc, function(req, res) {
+            try {
+                if (req.query && req.query.query) {
+                    var query = JSON.parse(req.query.query);
+                    if (query.from>=query.to)
+                    {
+                        res.status(400).json({error:"'From datetime' must be before 'to datetime'", message: reason.stack});
+                        return;
+                    }                                                            
+                                        
+                    runtime.daqStorage.getNodesValues(query.sids,query.from,query.to,query.options)
+                    .then(values => {
+                        if (values) {
+                            res.json(values);
+                        } else {
+                            res.status(404).end();
+                            runtime.logger.error("api get daq: Not Found!");
+                        }
+                        // io.emit(Events.IoEventTypes.DAQ_RESULT, { gid: msg.gid, values: values });
+                    }, reason => {
+                        if (reason && reason.stack) {
+                            runtime.logger.error(`api get daq: Not Found!: ${reason.stack}`);
+                            res.status(400).json({error:"unexpected_error", message: reason.stack});
+                        } else {
+                            runtime.logger.error(`api get daq: Not Found!: ${reason}`);
+                            res.status(400).json({error:"unexpected_error", message: reason});
+                        }
+                    });
+                } else {
+                    res.status(404).end();
+                    runtime.logger.error("api get daq: Not Found!");
+                }
+            } catch (err) {
+                if (err && err.code) {
+                    res.status(400).json({error:err.code, message: err.message});
+                } else {
+                    res.status(400).json({error:"unexpected_error", message:err.toString()});
+                }
+                runtime.logger.error("api get daq: " + err.message);
+            }
+        });
+        
         return daqApp;
     }
 }
