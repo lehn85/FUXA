@@ -50,11 +50,11 @@ function addDaqNode(_id, fncgetprop) {
     // return daqnodes[id].addDaqValue;
 }
 
-function getNodeValues(tagid, fromts, tots) {
+function getNodeValues(tagid, fromts, tots, options) {
     return new Promise(function (resolve, reject) {
         var daqnode = _getDaqNode(tagid);
         if (daqnode) {
-            resolve(daqnode.getDaqValue(tagid, fromts, tots));
+            resolve(daqnode.getDaqValue(tagid, fromts, tots, options));
         } else {
             resolve([]);
         }
@@ -76,7 +76,7 @@ function getNodesValues(tagsid, fromts, tots, options) {
         try {
             var dbfncs = [];
             for (let i = 0; i < tagsid.length; i++) {
-                dbfncs.push(await getNodeValues(tagsid[i], fromts, tots));
+                dbfncs.push(await getNodeValues(tagsid[i], fromts, tots, options ? {function: options.functions[i], interval: options.interval} : undefined));
             }
             Promise.all(dbfncs).then(values => {
                 if (!values || values.length < 1) {    // (0)[]

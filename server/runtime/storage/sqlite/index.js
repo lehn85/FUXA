@@ -291,17 +291,17 @@ function DaqNode(_settings, _log, _id) {
     /**
      * Return array of timeserie <timestamp, value>
      */
-    this.getDaqValue = function (tagid, fromts, tots) {
+    this.getDaqValue = function (tagid, fromts, tots, options) {
         return new Promise(function (resolve, reject) {
             if (daqTagsMap[tagid]) {
                 var result = [];
                 // search in current db
-                    _getTagValues(db_daqdata, daqTagsMap[tagid].mapid, fromts, tots).then(function (rows) {
+                    _getTagValues(db_daqdata, daqTagsMap[tagid].mapid, fromts, tots, options).then(function (rows) {
                     // search in archive
                     var archivefiles = _getArchiveFiles(id, fromts, tots);
                     var dbfncs = [];
                     archivefiles.forEach(file => {
-                        dbfncs.push(_bindAndGetTagValues(file, daqTagsMap[tagid].mapid, fromts, tots));
+                        dbfncs.push(_bindAndGetTagValues(file, daqTagsMap[tagid].mapid, fromts, tots, options));
                     });
                     Promise.all(dbfncs).then(values => {
                         for (var i = 0; i < values.length; i++) {
@@ -563,10 +563,10 @@ function DaqNode(_settings, _log, _id) {
         });
     }
 
-    function _bindAndGetTagValues(dbfile, id, fromts, tots) {
+    function _bindAndGetTagValues(dbfile, id, fromts, tots, options) {
         return new Promise(function (resolve, reject) {
             _bindDaqData(dbfile).then(result => {
-                _getTagValues(result, id, fromts, tots).then(rows => {
+                _getTagValues(result, id, fromts, tots, options).then(rows => {
                     result.close();
                     resolve(rows);
                 }).catch(function (err) {
@@ -578,9 +578,16 @@ function DaqNode(_settings, _log, _id) {
         });
     }
 
-    function _getTagValues(db, id, fromts, tots) {
+    function _getTagValues(db, id, fromts, tots, options) {
         return new Promise(function (resolve, reject) {
             var sql = "SELECT dt, value FROM data WHERE id = ? AND dt BETWEEN ? and ? ORDER BY dt ASC";
+            if (options) {
+                var aggFunc = 'avg(value)';//default
+                if (options.function === 'min' || options.function === 'max' || options.function === 'sum') {
+                    aggFunc = `${options.function}(value)`;                                    
+                }
+                sql = `SELECT ((dt/60000)*60000) as dt2, ((dt/60000)*60000) as dt, ${aggFunc} as value FROM data WHERE id = ? AND dt2 BETWEEN ? and ? group by dt2 ORDER BY dt2 ASC `;
+            }
             db.all(sql, [id, fromts, tots], function (err, rows) {
                 if (err) {
                     console.error(err);
