@@ -74,9 +74,19 @@ function getNodeValues(tagid, fromts, tots, options) {
 function getNodesValues(tagsid, fromts, tots, options) {
     return new Promise(async function (resolve, reject) {
         try {
-            var dbfncs = [];
+            var dbfncs = [];            
             for (let i = 0; i < tagsid.length; i++) {
-                dbfncs.push(await getNodeValues(tagsid[i], fromts, tots, options ? {function: options.functions[i], interval: options.interval} : undefined));
+                var gnvOptions = undefined;
+                if (options) {                    
+                    if (!options.interval){ //auto interval
+                        if (tots-fromts <= 2*3600*1000) options.interval = 'minute';//max 2*60=120 records
+                        else if (tots-fromts <= 24*3600*1000) options.interval = 'ten_minute';//max 24*60/10=144 records
+                        else if (tots-fromts <= 7*24*3600*1000) options.interval = 'hour';//max 24*7=168 record
+                        else options.interval = 'day';
+                    }
+                    gnvOptions = {function: options.functions?.[i], interval: options.interval};
+                }
+                dbfncs.push(await getNodeValues(tagsid[i], fromts, tots, gnvOptions));
             }
             Promise.all(dbfncs).then(values => {
                 if (!values || values.length < 1) {    // (0)[]
