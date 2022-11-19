@@ -29,25 +29,37 @@ function DaqNode(_settings, _log, _id) {
     var db_daqmap;                          // Database of mapped data 
     var db_daqdata;                         // Database of data
     var daqTagsMap = {};                    // Mapped db Tags/Nodes
-    var daqNextToken = new Date().getTime();// Interval to split Database data
-
-    daqNextToken += (settings.daqTokenizer) ? db_daqtoken * settings.daqTokenizer : db_daqtoken * 24;
-    if (settings.daqTokenizer === 0) {
-        daqNextToken = 0;
-    } else {
+    var daqDeltaToken = (settings.daqTokenizer) ? db_daqtoken * settings.daqTokenizer : db_daqtoken * 24;
+    var daqNextToken = (settings.daqTokenizer) ? new Date().getTime() + daqDeltaToken : 0;// Interval to split Database data
+    
+    var currentDbFile = '';    
+    if (settings.daqTokenizer) {
         // check database pending 
         var pendsfile = path.join(settings.dbDir, db_daqdata_prefix + id + '_');
         var pendsfiles = fs.readdirSync(settings.dbDir);
         for (var i in pendsfiles) {
             var filePath = path.join(settings.dbDir, pendsfiles[i]);
             if (filePath.indexOf(pendsfile) === 0) {
-                _checkToArchiveDBfile(filePath);
+                // current db file
+                if (filePath.indexOf('-journal') < 0) {
+                    currentDbFile = filePath;                    
+                }
+                // check if file should be archive
+                const tSuffix = filePath.substring(pendsfile.length);
+                const fileTs = _parseSuffix(tSuffix);
+                if (!fileTs || fileTs + daqDeltaToken < new Date().getTime()){
+                    _checkToArchiveDBfile(filePath); //archive      
+                    var suffix = (settings.daqTokenizer) ? _getDateTimeSuffix(new Date()) : '';
+                    currentDbFile = path.join(settings.dbDir, db_daqdata_prefix + id + '_' + suffix + '.db'); //get new name
+                }
             }
         }
     }
+
     // define file database
-    var suffix = (daqNextToken) ? _getDateTimeSuffix(new Date()) : '';
-    var db_daqdata_file = path.join(settings.dbDir, db_daqdata_prefix + id + '_' + suffix + '.db');
+    // var suffix = (settings.daqTokenizer) ? _getDateTimeSuffix(new Date()) : '';
+    // var db_daqdata_file = path.join(settings.dbDir, db_daqdata_prefix + id + '_' + suffix + '.db');
+    var db_daqdata_file = currentDbFile;
     var db_daqmap_file = path.join(settings.dbDir, db_daqmap_prefix + id + '.db');
 
     var db_daqmap_exists = require('fs').existsSync(db_daqmap_file);
@@ -144,7 +156,7 @@ function DaqNode(_settings, _log, _id) {
                                     db_daqdata = null;
                                     _bindDaqData(db_daqdata_file).then(result => {
                                         logger.info(`daqstorage.add-daq-value _bindDaqData '${id}' database`, true);
-                                        daqNextToken += (settings.daqTimeToken) ? db_daqtoken * settings.daqTimeToken : db_daqtoken;
+                                        daqNextToken += daqDeltaToken;
                                         db_daqdata = result;
                                         _archiveDBfile(oldfile, lastts);
                                         _checkDataWorking(false);
@@ -233,7 +245,7 @@ function DaqNode(_settings, _log, _id) {
                                     db_daqdata = null;
                                     _bindDaqData(db_daqdata_file).then(result => {
                                         logger.info(`daqstorage.add-daq-values '${db_daqmap_file}' database`, true);
-                                        daqNextToken += (settings.daqTimeToken) ? db_daqtoken * settings.daqTimeToken : db_daqtoken;
+                                        daqNextToken += daqDeltaToken;
                                         db_daqdata = result;
                                         _archiveDBfile(oldfile, lastts);
                                         _checkDataWorking(false);
@@ -626,19 +638,20 @@ function checkRetention(dtlimit, dbDir, callbackError) {
     }
 }
 
-function _suffixToTimestamp(file) {
-    function _parseSuffix(dtText) {
-        if (dtText.length >= 14) {
-            var yyyy = parseInt(dtText.substring(0, 4));
-            var mm = parseInt(dtText.substring(4, 6)) - 1;
-            var dd = parseInt(dtText.substring(6, 8));
-            var HH = parseInt(dtText.substring(8, 10));
-            var MM = parseInt(dtText.substring(10, 12));
-            var SS = parseInt(dtText.substring(12, 14));
-            return new Date(yyyy, mm, dd, HH, MM, SS).getTime();
-        }
-        return null;
+function _parseSuffix(dtText) {
+    if (dtText.length >= 14) {
+        var yyyy = parseInt(dtText.substring(0, 4));
+        var mm = parseInt(dtText.substring(4, 6)) - 1;
+        var dd = parseInt(dtText.substring(6, 8));
+        var HH = parseInt(dtText.substring(8, 10));
+        var MM = parseInt(dtText.substring(10, 12));
+        var SS = parseInt(dtText.substring(12, 14));
+        return new Date(yyyy, mm, dd, HH, MM, SS).getTime();
     }
+    return null;
+}
+
+function _suffixToTimestamp(file) {   
     var ranges = file.split('_');
     if (ranges.length >= 3) {
         return { from: _parseSuffix(ranges[ranges.length - 2]),
