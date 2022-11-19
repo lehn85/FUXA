@@ -35,7 +35,7 @@ function getMin(timeserie, fromts, tots, intervalType) {
     let addToInterval = (intervals, intervalIndex, value) => {
         if (!intervals[intervalIndex]) {
             intervals[intervalIndex] = Number.MAX_VALUE;
-        } else if (intervals[intervalIndex] > value) {
+        } else if (Number.isFinite(value) && intervals[intervalIndex] > value) {
             intervals[intervalIndex] = value;
         }
     }
@@ -57,7 +57,7 @@ function getMax(timeserie, fromts, tots, intervalType) {
     let addToInterval = (intervals, intervalIndex, value) => {
         if (!intervals[intervalIndex]) {
             intervals[intervalIndex] = Number.MIN_VALUE;
-        } else if (intervals[intervalIndex] < value) {
+        } else if (Number.isFinite(value) && intervals[intervalIndex] < value) {
             intervals[intervalIndex] = value;
         }
     }
@@ -80,7 +80,7 @@ function getAverage(timeserie, fromts, tots, intervalType) {
     let addToInterval = (intervals, counters, intervalIndex, value) => {
         if (utils.isNullOrUndefined(intervals[intervalIndex])) {
             intervals[intervalIndex] = 0;
-        } else {
+        } else if (Number.isFinite(value)) {
             intervals[intervalIndex] += value;
             counters[intervalIndex]++;
         }
@@ -109,7 +109,7 @@ function getSum(timeserie, fromts, tots, intervalType) {
     let addToInterval = (intervals, intervalIndex, value) => {
         if (utils.isNullOrUndefined(intervals[intervalIndex])) {
             intervals[intervalIndex] = 0;
-        } else {
+        } else if (Number.isFinite(value)) {
             intervals[intervalIndex] += value;
             intervals[intervalIndex] = utils.parseFloat(intervals[intervalIndex], 5)
         }
