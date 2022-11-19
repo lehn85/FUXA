@@ -98,9 +98,27 @@ function Influx(_settings, _log) {
         return dummy;
     }
 
-    this.getDaqValue = function (tagid, fromts, tots) {
+    this.getDaqValue = function (tagid, fromts, tots, options) {
         return new Promise(function (resolve, reject) {
-            const query = flux`from(bucket: "${settings.daqstore.bucket}") |> range(start: ${new Date(fromts)}, stop: ${new Date(tots)}) |> filter(fn: (r) => r._measurement == "${tagid}")`;
+            var query = flux`from(bucket: "${settings.daqstore.bucket}") |> range(start: ${new Date(fromts)}, stop: ${new Date(tots)}) |> filter(fn: (r) => r._measurement == "${tagid}")`;
+            if (options) {
+                var func = 'mean';
+                if (options.function === 'min' || options.function === 'max' || options.function === 'sum') {
+                    func = options.function;
+                }
+
+                var interval = '1m';
+                if (options.interval === 'ten_minute') interval = '10m';
+                else if (options.interval === 'half_hour') interval = '30m';
+                else if (options.interval === 'hour') interval = '1h';
+                else if (options.interval === 'day') interval = '1d';
+                
+                query = flux`from(bucket: "${settings.daqstore.bucket}") 
+                |> range(start: ${new Date(fromts)}, stop: ${new Date(tots)}) 
+                |> filter(fn: (r) => r._measurement == "${tagid}")`
+                +
+                `|> aggregateWindow(every: ${interval}, fn: ${func})`;
+            }
             try {
                 var result = [];
                 queryApi.queryRows(query, {
