@@ -117,7 +117,11 @@ function Influx(_settings, _log) {
                 |> range(start: ${new Date(fromts)}, stop: ${new Date(tots)}) 
                 |> filter(fn: (r) => r._measurement == "${tagid}")`
                 +
-                `|> aggregateWindow(every: ${interval}, fn: ${func})`;
+                // `|> aggregateWindow(every: ${interval}, fn: ${func})`;
+                `|> window(every: ${interval}, createEmpty: true)
+                |> ${func}()
+                |> duplicate(column: "_start", as: "_time")
+                |> window(every: inf)`
             }
             try {
                 var result = [];
